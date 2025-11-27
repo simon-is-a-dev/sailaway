@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Crickey</title>
+
+    <style>
+      /* Australian Color Palette */
+      :root {
+        --aussie-green: #4f997d;
+        --aussie-cream: #ffe797;
+        --aussie-orange: #ffdfa7;
+        --aussie-red: #a72703;
+        --aussie-white: #ffffff;
+        --text-black: #000000;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: var(--aussie-green);
+        padding: 1rem;
+        overflow: hidden;
+      }
+
+      /* Main container */
+      .mainContainer {
+        width: 100%;
+        max-width: 400px;
+        background-color: var(--aussie-white);
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 2rem 1.5rem;
+        border: 2px solid var(--text-black);
+        z-index: 10;
+        transition: opacity 0.5s;
+      }
+      .mainContainer.hidden {
+        display: none;
+      }
+      .mainContainer h1 {
+        text-align: center;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+        color: var(--text-black);
+      }
+      .questionCard {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      .questionCard .question {
+        font-size: 1.3rem;
+        color: var(--text-black);
+        text-align: center;
+      }
+      .optionsContainer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+      .optionBtn {
+        padding: 0.8rem;
+        font-size: 1rem;
+        border: 2px solid var(--text-black);
+        border-radius: 8px;
+        background-color: var(--aussie-orange);
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        color: var(--text-black);
+        font-weight: 500;
+      }
+      .optionBtn:active {
+        background-color: var(--aussie-cream);
+      }
+      .feedbackContainer {
+        text-align: center;
+        font-weight: bold;
+        font-size: 1rem;
+        min-height: 1.2rem;
+        color: var(--aussie-green);
+      }
+      .feedbackContainer.incorrect {
+        color: var(--aussie-red);
+      }
+
+      /* --- Video Overlay Styles --- */
+      #video-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: black;
+        z-index: 9999;
+        display: none; /* Hidden by default */
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      #turn-message {
+        position: absolute;
+        z-index: 10001;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+        text-align: center;
+        text-transform: uppercase;
+        animation: blink 1s infinite;
+        pointer-events: none;
+        
+      }
+
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      /* 
+         This rotates the video container 90 degrees.
+         We swap width/height (100vh width, 100vw height)
+         to ensure it fills the portrait phone screen while rotated.
+      */
+      .video-wrapper {
+        position: absolute;
+        width: 100vh;
+        height: 100vw;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform: rotate(90deg); 
+        transform-origin: center;
+        background: black;
+      }
+
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* Ensures the whole video is visible */
+      }
+
+    </style>
+  </head>
+  <body>
+    <!-- Quiz Section -->
+    <div class="mainContainer" id="mainContainer">
+      <h1>Get to know Australia</h1>
+      <div class="questionCard">
+        <h2 class="question">What is happening Sunday?</h2>
+        <div class="optionsContainer">
+           <button class="optionBtn" data-answer="true">WE ARE GOING TO AUSTRALIA</button>
+           <button class="optionBtn" data-answer="true">Simon is going to cry and question everything</button>
+           <button class="optionBtn" data-answer="true">Church</button>
+           <button class="optionBtn" data-answer="true">We are going to sit on a plane for way to long</button>
+           <button class="optionBtn" data-answer="true">All of the above</button>
+        </div>
+        <div class="feedbackContainer" id="feedback"></div>
+      </div>
+    </div>
+
+    <!-- Video Overlay Section -->
+    <div id="video-overlay">
+        <div id="turn-message">↻ Turn Your Phone ↻</div>
+        <div class="video-wrapper">
+            <!-- 'playsinline' is crucial for iOS to respect CSS rotation -->
+            <video id="final-video" playsinline>
+                <source src="assets/finalvid.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+      const mainContainer = document.getElementById("mainContainer");
+      const videoOverlay = document.getElementById("video-overlay");
+      const finalVideo = document.getElementById("final-video");
+      const turnMessage = document.getElementById("turn-message");
+      const buttons = document.querySelectorAll(".optionBtn");
+      const feedback = document.getElementById("feedback");
+
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const isCorrect = btn.dataset.answer === "true";
+
+          if (isCorrect) {
+            // 1. Hide the quiz
+            mainContainer.classList.add("hidden");
+
+            // 2. Show the overlay
+            videoOverlay.style.display = "flex";
+
+            // 3. Prepare Video
+            finalVideo.volume = 1.0; // Max volume
+            finalVideo.currentTime = 0;
+
+            // 4. Play immediately (needs user interaction context, which we have from the click)
+            const playPromise = finalVideo.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    // Video playback started
+                })
+                .catch(error => {
+                    console.log("Auto-play prevented:", error);
+                    // Fallback: show a play button if browser blocks it (rare on click)
+                    turnMessage.innerText = "Tap screen to play!";
+                    videoOverlay.addEventListener('click', () => finalVideo.play());
+                });
+            }
+
+            // 5. Hide the "Turn Phone" text after 3 seconds so they can watch cleanly
+            setTimeout(() => {
+                turnMessage.style.display = 'none';
+            }, 1000);
+
+          } else {
+            // Wrong answer logic
+            btn.style.backgroundColor = "var(--aussie-red)";
+            btn.style.color = "var(--aussie-white)";
+            feedback.textContent = "Try again!";
+            feedback.classList.add("incorrect");
+            setTimeout(() => {
+              btn.style.backgroundColor = "";
+              btn.style.color = "";
+              feedback.textContent = "";
+            }, 1000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
