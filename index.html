@@ -119,7 +119,6 @@
         text-transform: uppercase;
         animation: blink 1s infinite;
         pointer-events: none;
-        
       }
 
       @keyframes blink {
@@ -127,11 +126,6 @@
         50% { opacity: 0.5; }
       }
 
-      /* 
-         This rotates the video container 90 degrees.
-         We swap width/height (100vh width, 100vw height)
-         to ensure it fills the portrait phone screen while rotated.
-      */
       .video-wrapper {
         position: absolute;
         width: 100vh;
@@ -147,9 +141,8 @@
       video {
         width: 100%;
         height: 100%;
-        object-fit: contain; /* Ensures the whole video is visible */
+        object-fit: contain;
       }
-
     </style>
   </head>
   <body>
@@ -173,8 +166,7 @@
     <div id="video-overlay">
         <div id="turn-message">↻ Turn Your Phone ↻</div>
         <div class="video-wrapper">
-            <!-- 'playsinline' is crucial for iOS to respect CSS rotation -->
-            <video id="final-video" playsinline>
+            <video id="final-video" playsinline preload="auto" muted>
                 <source src="https://raw.githubusercontent.com/simon-is-a-dev/lols3/main/finalvid_small.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
@@ -189,43 +181,37 @@
       const buttons = document.querySelectorAll(".optionBtn");
       const feedback = document.getElementById("feedback");
 
+      // Start preloading immediately
+      document.addEventListener("DOMContentLoaded", () => {
+          finalVideo.load(); // ensure buffering starts
+          finalVideo.muted = true;
+          finalVideo.play().then(() => finalVideo.pause()); // kickstart preload
+      });
+
       buttons.forEach((btn) => {
         btn.addEventListener("click", () => {
           const isCorrect = btn.dataset.answer === "true";
 
           if (isCorrect) {
-            // 1. Hide the quiz
             mainContainer.classList.add("hidden");
-
-            // 2. Show the overlay
             videoOverlay.style.display = "flex";
-
-            // 3. Prepare Video
-            finalVideo.volume = 1.0; // Max volume
+            finalVideo.volume = 1.0;
             finalVideo.currentTime = 0;
 
-            // 4. Play immediately (needs user interaction context, which we have from the click)
             const playPromise = finalVideo.play();
-            
             if (playPromise !== undefined) {
-                playPromise.then(_ => {
-                    // Video playback started
-                })
-                .catch(error => {
+                playPromise.then(_ => {}).catch(error => {
                     console.log("Auto-play prevented:", error);
-                    // Fallback: show a play button if browser blocks it (rare on click)
                     turnMessage.innerText = "Tap screen to play!";
                     videoOverlay.addEventListener('click', () => finalVideo.play());
                 });
             }
 
-            // 5. Hide the "Turn Phone" text after 3 seconds so they can watch cleanly
             setTimeout(() => {
                 turnMessage.style.display = 'none';
             }, 1000);
 
           } else {
-            // Wrong answer logic
             btn.style.backgroundColor = "var(--aussie-red)";
             btn.style.color = "var(--aussie-white)";
             feedback.textContent = "Try again!";
@@ -234,6 +220,7 @@
               btn.style.backgroundColor = "";
               btn.style.color = "";
               feedback.textContent = "";
+              feedback.classList.remove("incorrect");
             }, 1000);
           }
         });
